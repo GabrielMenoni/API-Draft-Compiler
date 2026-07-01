@@ -1,0 +1,16 @@
+ENTITY User {
+  string name,
+  int age,
+  bool active
+}
+
+ENTITY Product {
+  string title,
+  float price,
+  int stock
+}
+
+ROUTE GET "/users" RETURNS List<User>
+ROUTE POST "/users" RETURNS User
+ROUTE GET "/products" RETURNS List<Product>
+ROUTE DELETE "/products" RETURNS Product

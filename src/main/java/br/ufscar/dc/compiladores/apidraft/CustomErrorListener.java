@@ -5,34 +5,56 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 
-import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CustomErrorListener extends BaseErrorListener {
-    private final PrintWriter pw;
-    private boolean errorFound = false;
-
-    public CustomErrorListener(PrintWriter pw) {
-        this.pw = pw;
-    }
+    private final List<String> errors = new ArrayList<>();
 
     @Override
     public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
                             int line, int charPositionInLine, String msg, RecognitionException e) {
-        if (errorFound) return;
-
-        String text = "<EOF>";
         if (offendingSymbol instanceof Token) {
-            Token t = (Token) offendingSymbol;
-            text = t.getText().equals("<EOF>") ? "EOF" : t.getText();
+            Token token = (Token) offendingSymbol;
+            String tokenName = ApiDraftLexer.VOCABULARY.getSymbolicName(token.getType());
+
+            if ("ERRO_SIMBOLO".equals(tokenName)) {
+                errors.add(String.format(
+                    "Erro léxico na linha %d, coluna %d: símbolo '%s' não reconhecido",
+                    line, charPositionInLine, token.getText()));
+                return;
+            }
         }
 
-        pw.println("Linha " + line + ":" + charPositionInLine + ": erro sintatico proximo a " + text);
-        errorFound = true;
+        String found = offendingSymbol instanceof Token
+            ? "'" + ((Token) offendingSymbol).getText() + "'"
+            : "desconhecido";
+        String expected = extractExpected(msg);
 
-        throw new RuntimeException("ParseError");
+        errors.add(String.format(
+            "Erro sintático na linha %d, coluna %d: esperado %s mas encontrado %s",
+            line, charPositionInLine, expected, found));
     }
 
-    public boolean hasError() {
-        return errorFound;
+    private String extractExpected(String antlrMsg) {
+        // ANTLR emite mensagens como "missing X at Y" ou "mismatched input X expecting Y"
+        if (antlrMsg.contains("expecting")) {
+            int idx = antlrMsg.indexOf("expecting");
+            return antlrMsg.substring(idx + "expecting".length()).trim();
+        }
+        if (antlrMsg.contains("missing")) {
+            int start = antlrMsg.indexOf("missing") + "missing".length();
+            int end = antlrMsg.contains(" at ") ? antlrMsg.indexOf(" at ") : antlrMsg.length();
+            return antlrMsg.substring(start, end).trim();
+        }
+        return "token válido";
+    }
+
+    public boolean hasErrors() {
+        return !errors.isEmpty();
+    }
+
+    public List<String> getErrors() {
+        return errors;
     }
 }

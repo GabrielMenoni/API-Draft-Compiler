@@ -1,0 +1,6 @@
+ENTITY Product {
+  string name,
+  float price
+}
+
+ROUTE GET "/products" RETURNS List<Product>
