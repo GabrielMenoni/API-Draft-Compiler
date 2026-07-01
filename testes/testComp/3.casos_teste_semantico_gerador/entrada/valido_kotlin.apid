@@ -1,0 +1,7 @@
+ENTITY User {
+  string name,
+  int age
+}
+
+ROUTE GET "/users" RETURNS List<User>
+ROUTE POST "/users" RETURNS User

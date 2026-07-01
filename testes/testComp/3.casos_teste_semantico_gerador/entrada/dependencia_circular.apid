@@ -1,0 +1,9 @@
+ENTITY User {
+  string name,
+  Profile profile
+}
+
+ENTITY Profile {
+  string bio,
+  User owner
+}

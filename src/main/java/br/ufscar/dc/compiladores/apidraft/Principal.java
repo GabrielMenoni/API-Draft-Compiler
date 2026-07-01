@@ -1,11 +1,16 @@
 package br.ufscar.dc.compiladores.apidraft;
 
 import br.ufscar.dc.compiladores.apidraft.ast.ProgramNode;
+import br.ufscar.dc.compiladores.apidraft.codegen.CodeGenerator;
+import br.ufscar.dc.compiladores.apidraft.codegen.GeneratorFactory;
+import br.ufscar.dc.compiladores.apidraft.semantic.SemanticAnalyzer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 
 public class Principal {
     private static final String USO =
@@ -26,8 +31,20 @@ public class Principal {
             System.exit(1);
         }
 
-        // Phases following (US3+): semantic analysis and code generation
-        // (code generation not yet implemented)
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        List<String> errors = analyzer.analyze(program);
+        if (!errors.isEmpty()) {
+            errors.forEach(System.err::println);
+            System.exit(1);
+        }
+
+        try {
+            CodeGenerator generator = GeneratorFactory.create(target);
+            generator.generate(program, Path.of(outputDir));
+        } catch (IOException e) {
+            System.err.println("Erro ao gerar arquivos: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
     public static ProgramNode parse(String inputFile) {

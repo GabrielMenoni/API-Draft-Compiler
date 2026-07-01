@@ -1,0 +1,1 @@
+Erro semântico: dependência circular detectada entre User -> Profile -> User

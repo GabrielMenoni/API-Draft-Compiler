@@ -54,7 +54,8 @@ public class AstBuilder extends ApiDraftParserBaseVisitor<Object> {
         String rawPath = ctx.PATH().getText();
         String path = rawPath.substring(1, rawPath.length() - 1);
         TypeNode returnType = visitTipo(ctx.tipo());
-        return new RouteNode(method, path, returnType);
+        int line = ctx.getStart().getLine();
+        return new RouteNode(method, path, returnType, line);
     }
 
     @Override
