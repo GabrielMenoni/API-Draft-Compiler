@@ -8,6 +8,11 @@ import org.antlr.v4.runtime.Token;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Reúne erros léxicos e sintáticos em mensagens com linha/coluna, no lugar das
+ * mensagens padrão do ANTLR (que vazam termos da gramática, pouco úteis para
+ * quem escreve um arquivo {@code .apid}).
+ */
 public class CustomErrorListener extends BaseErrorListener {
     private final List<String> errors = new ArrayList<>();
 

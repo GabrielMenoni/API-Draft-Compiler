@@ -7,6 +7,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+/**
+ * Gera um DTO TypeScript ({@code export class}) por entidade e um controller NestJS
+ * ({@code @Controller}) por prefixo de caminho, com um decorator de método HTTP por rota.
+ * Assim como no gerador Kotlin, os corpos dos métodos lançam erro em vez de implementar
+ * lógica de negócio — o compilador entrega o contrato, não a implementação.
+ */
 public class TypeScriptNestGenerator implements CodeGenerator {
 
     @Override
@@ -160,7 +166,7 @@ public class TypeScriptNestGenerator implements CodeGenerator {
         return type.equals("string") || type.equals("int") || type.equals("bool") || type.equals("float");
     }
 
-    // "UserProfile" → "user-profile"
+    /** {@code "UserProfile" -> "user-profile"}, para nomes de arquivo no padrão NestJS. */
     private String toKebabCase(String name) {
         return name.replaceAll("([A-Z])", "-$1").toLowerCase().replaceAll("^-", "");
     }

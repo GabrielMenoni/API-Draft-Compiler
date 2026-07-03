@@ -7,6 +7,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+/**
+ * Gera um DTO Kotlin ({@code data class}) por entidade e um controller Spring
+ * ({@code @RestController}) por prefixo de caminho, com um método por rota.
+ * Os corpos dos métodos ficam como {@code TODO("Not yet implemented")}: o
+ * compilador gera o contrato da API, não a lógica de negócio.
+ */
 public class KotlinSpringGenerator implements CodeGenerator {
 
     @Override
@@ -20,6 +26,8 @@ public class KotlinSpringGenerator implements CodeGenerator {
             generateDto(entity, dtosDir);
         }
 
+        // Rotas com o mesmo primeiro segmento de caminho (ex.: "/users", "/users/{id}")
+        // viram métodos do mesmo controller, como o roteamento por recurso do Spring MVC.
         Map<String, List<RouteNode>> groups = groupByPathPrefix(program.routes);
         for (Map.Entry<String, List<RouteNode>> entry : groups.entrySet()) {
             generateController(entry.getKey(), entry.getValue(), program.entities, controllersDir);
@@ -96,6 +104,9 @@ public class KotlinSpringGenerator implements CodeGenerator {
         return mapKotlinPrimitive(type.baseType);
     }
 
+    // Equivalente a toKotlinType: mapKotlinPrimitive já resolve tipos de entidade
+    // para "<Nome>Dto" no caso default, então o branch isPrimitive abaixo é redundante
+    // (mantido separado para espelhar a estrutura do gerador TypeScript).
     private String toKotlinReturnType(TypeNode type) {
         if ("List".equals(type.baseType) && type.genericArg != null) {
             return "List<" + toKotlinReturnType(type.genericArg) + ">";

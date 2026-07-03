@@ -5,6 +5,15 @@ import br.ufscar.dc.compiladores.apidraft.codegen.RouteNaming;
 
 import java.util.*;
 
+/**
+ * Verificações de conformidade que a gramática não consegue expressar. Além das
+ * checagens estruturais básicas (entidade/campo duplicado, tipo não declarado),
+ * inclui duas análises específicas do domínio de geração de código: colisão de
+ * símbolos gerados (duas rotas distintas que produziriam o mesmo nome de
+ * controller/método) e dependência circular entre entidades (DFS com coloração
+ * branco/cinza/preto). Todos os erros de um programa são acumulados e retornados
+ * juntos, em vez de parar no primeiro.
+ */
 public class SemanticAnalyzer {
 
     private static final Set<String> PRIMITIVES = Set.of("string", "int", "bool", "float");

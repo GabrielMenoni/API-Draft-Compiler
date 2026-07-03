@@ -13,6 +13,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Ponto de entrada da CLI. Orquestra as quatro fases do compilador em sequência
+ * (léxica/sintática -> AST -> semântica -> geração de código), interrompendo com
+ * código de saída 1 assim que uma fase reporta erro.
+ */
 public class Principal {
     private static final String USO =
         "Uso: java -jar api-draft-compiler.jar --target <kotlin|typescript> --output <dir> <arquivo.apid>";
@@ -48,6 +53,13 @@ public class Principal {
         }
     }
 
+    /**
+     * Executa léxico + sintático sobre {@code inputFile} e devolve a AST.
+     * Erros léxicos são coletados manualmente varrendo os tokens (em vez de só
+     * escutar o parser) porque tokens de erro como {@code ERRO_SIMBOLO} e
+     * {@code UNCLOSED_PATH} não disparam o listener de sintaxe do ANTLR por si só.
+     * Retorna {@code null} e já imprime as mensagens de erro quando há falha.
+     */
     public static ProgramNode parse(String inputFile) {
         CharStream cs;
         try {

@@ -74,6 +74,12 @@ public final class RouteNaming {
         return String.join("-", words(controllerKey(path))).toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Deriva um nome de método a partir do verbo HTTP e do caminho, ex.:
+     * {@code GET "/users/{id}"} -> {@code getUserById}, {@code POST "/users"} -> {@code createUser}.
+     * Usado tanto para gerar código quanto por {@link br.ufscar.dc.compiladores.apidraft.semantic.SemanticAnalyzer}
+     * para detectar rotas distintas que colidiriam no mesmo nome de método gerado.
+     */
     public static String methodName(RouteNode route) {
         String action = action(route.method);
         if ("/".equals(route.path)) {

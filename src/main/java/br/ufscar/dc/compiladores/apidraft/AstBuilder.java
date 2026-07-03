@@ -5,6 +5,7 @@ import br.ufscar.dc.compiladores.apidraft.ast.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Converte a árvore de parse gerada pelo ANTLR na AST tipada usada pelas fases seguintes. */
 public class AstBuilder extends ApiDraftParserBaseVisitor<Object> {
 
     @Override
