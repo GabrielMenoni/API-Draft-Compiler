@@ -7,6 +7,7 @@ import br.ufscar.dc.compiladores.apidraft.semantic.SemanticAnalyzer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -64,6 +65,14 @@ public class Principal {
 
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         tokens.fill();
+
+        for (Token token : tokens.getTokens()) {
+            if (token.getType() == ApiDraftLexer.ERRO_SIMBOLO) {
+                errorListener.lexicalError(token);
+            } else if (token.getType() == ApiDraftLexer.UNCLOSED_PATH) {
+                errorListener.unclosedPath(token);
+            }
+        }
 
         if (errorListener.hasErrors()) {
             errorListener.getErrors().forEach(System.err::println);

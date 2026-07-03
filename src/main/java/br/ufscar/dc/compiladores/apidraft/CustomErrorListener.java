@@ -54,6 +54,18 @@ public class CustomErrorListener extends BaseErrorListener {
         return !errors.isEmpty();
     }
 
+    public void lexicalError(Token token) {
+        errors.add(String.format(
+            "Erro léxico na linha %d, coluna %d: símbolo '%s' não reconhecido",
+            token.getLine(), token.getCharPositionInLine(), token.getText()));
+    }
+
+    public void unclosedPath(Token token) {
+        errors.add(String.format(
+            "Erro léxico na linha %d, coluna %d: caminho HTTP não fechado com aspas",
+            token.getLine(), token.getCharPositionInLine()));
+    }
+
     public List<String> getErrors() {
         return errors;
     }

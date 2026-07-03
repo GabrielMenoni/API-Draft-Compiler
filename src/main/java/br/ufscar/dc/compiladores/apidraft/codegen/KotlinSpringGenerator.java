@@ -13,8 +13,8 @@ public class KotlinSpringGenerator implements CodeGenerator {
     public void generate(ProgramNode program, Path outputDir) throws IOException {
         Path dtosDir = outputDir.resolve("dtos");
         Path controllersDir = outputDir.resolve("controllers");
-        Files.createDirectories(dtosDir);
-        Files.createDirectories(controllersDir);
+        GeneratedOutput.recreateDirectory(dtosDir);
+        GeneratedOutput.recreateDirectory(controllersDir);
 
         for (EntityNode entity : program.entities) {
             generateDto(entity, dtosDir);
@@ -44,10 +44,7 @@ public class KotlinSpringGenerator implements CodeGenerator {
 
     private void generateController(String prefix, List<RouteNode> routes,
                                     List<EntityNode> entities, Path controllersDir) throws IOException {
-        // prefix = "users" → pluralName = "Users", singularName = "User"
-        String pluralName = capitalize(prefix);
-        String singularName = capitalize(singularize(prefix));
-        String className = pluralName + "Controller";
+        String className = RouteNaming.controllerName(routes.get(0).path) + "Controller";
 
         Set<String> imports = new LinkedHashSet<>();
         for (RouteNode route : routes) {
@@ -68,8 +65,9 @@ public class KotlinSpringGenerator implements CodeGenerator {
 
         for (RouteNode route : routes) {
             sb.append("\n");
-            sb.append("    @").append(toSpringAnnotation(route.method)).append("(\"").append(route.path).append("\")\n");
-            String methodName = toKotlinMethodName(route.method, pluralName, singularName);
+            sb.append("    @").append(toSpringAnnotation(route.method)).append("(\"")
+                .append(RouteNaming.springPath(route.path)).append("\")\n");
+            String methodName = RouteNaming.methodName(route);
             String returnType = toKotlinReturnType(route.returnType);
             sb.append("    fun ").append(methodName).append("(): ").append(returnType).append(" {\n");
             sb.append("        TODO(\"Not yet implemented\")\n");
@@ -85,17 +83,10 @@ public class KotlinSpringGenerator implements CodeGenerator {
     private Map<String, List<RouteNode>> groupByPathPrefix(List<RouteNode> routes) {
         Map<String, List<RouteNode>> groups = new LinkedHashMap<>();
         for (RouteNode route : routes) {
-            String prefix = pathPrefix(route.path);
+            String prefix = RouteNaming.controllerKey(route.path);
             groups.computeIfAbsent(prefix, k -> new ArrayList<>()).add(route);
         }
         return groups;
-    }
-
-    // "/users" → "users", "/users/{id}" → "users"
-    private String pathPrefix(String path) {
-        String stripped = path.startsWith("/") ? path.substring(1) : path;
-        int slash = stripped.indexOf('/');
-        return slash >= 0 ? stripped.substring(0, slash) : stripped;
     }
 
     private String toKotlinType(TypeNode type) {
@@ -136,25 +127,6 @@ public class KotlinSpringGenerator implements CodeGenerator {
         }
     }
 
-    private String toKotlinMethodName(HttpMethod method, String pluralName, String singularName) {
-        switch (method) {
-            case GET:    return "get" + pluralName;
-            case POST:   return "create" + singularName;
-            case PUT:    return "update" + singularName;
-            case DELETE: return "delete" + singularName;
-            case PATCH:  return "patch" + singularName;
-            default:     return "handle" + singularName;
-        }
-    }
-
-    // "users" → "user", "orders" → "order"; pass-through if no trailing s
-    private String singularize(String segment) {
-        if (segment.endsWith("s") && segment.length() > 1) {
-            return segment.substring(0, segment.length() - 1);
-        }
-        return segment;
-    }
-
     private String resolveBaseType(TypeNode type) {
         if ("List".equals(type.baseType) && type.genericArg != null) {
             return resolveBaseType(type.genericArg);
@@ -166,8 +138,4 @@ public class KotlinSpringGenerator implements CodeGenerator {
         return type.equals("string") || type.equals("int") || type.equals("bool") || type.equals("float");
     }
 
-    private String capitalize(String s) {
-        if (s == null || s.isEmpty()) return s;
-        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
 }

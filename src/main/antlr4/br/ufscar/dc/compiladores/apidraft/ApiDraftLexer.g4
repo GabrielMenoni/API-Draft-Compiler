@@ -25,7 +25,8 @@ GT     : '>' ;
 COMMA  : ',' ;
 
 // Literals
-PATH  : '"' (~["\r\n])* '"' ;
+PATH          : '"' (~["\r\n])* '"' ;
+UNCLOSED_PATH : '"' (~["\r\n])* ;
 IDENT : [a-zA-Z][a-zA-Z0-9_]* ;
 
 // Ignored

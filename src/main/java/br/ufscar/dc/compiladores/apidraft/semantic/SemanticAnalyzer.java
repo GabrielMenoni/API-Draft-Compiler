@@ -1,6 +1,7 @@
 package br.ufscar.dc.compiladores.apidraft.semantic;
 
 import br.ufscar.dc.compiladores.apidraft.ast.*;
+import br.ufscar.dc.compiladores.apidraft.codegen.RouteNaming;
 
 import java.util.*;
 
@@ -10,8 +11,13 @@ public class SemanticAnalyzer {
 
     public List<String> analyze(ProgramNode program) {
         List<SemanticError> errors = new ArrayList<>();
+        errors.addAll(checkDuplicateEntities(program));
+        errors.addAll(checkDuplicateFields(program));
+        errors.addAll(checkFieldTypes(program));
         errors.addAll(checkReturnTypes(program));
+        errors.addAll(checkPaths(program));
         errors.addAll(checkDuplicateRoutes(program));
+        errors.addAll(checkGeneratedSymbolCollisions(program));
         errors.addAll(checkCircularDependencies(program));
 
         List<String> messages = new ArrayList<>();
@@ -21,12 +27,55 @@ public class SemanticAnalyzer {
         return messages;
     }
 
+    private List<SemanticError> checkDuplicateEntities(ProgramNode program) {
+        Map<String, Integer> seen = new LinkedHashMap<>();
+        List<SemanticError> errors = new ArrayList<>();
+        for (EntityNode entity : program.entities) {
+            Integer firstLine = seen.putIfAbsent(entity.name, entity.line);
+            if (firstLine != null) {
+                errors.add(new SemanticError(String.format(
+                    "Erro semântico: entidade '%s' duplicada (já declarada na linha %d)",
+                    entity.name, firstLine), entity.line));
+            }
+        }
+        return errors;
+    }
+
+    private List<SemanticError> checkDuplicateFields(ProgramNode program) {
+        List<SemanticError> errors = new ArrayList<>();
+        for (EntityNode entity : program.entities) {
+            Map<String, Integer> seen = new LinkedHashMap<>();
+            for (FieldNode field : entity.fields) {
+                Integer firstLine = seen.putIfAbsent(field.fieldName, field.line);
+                if (firstLine != null) {
+                    errors.add(new SemanticError(String.format(
+                        "Erro semântico: campo '%s' duplicado na entidade '%s' (já declarado na linha %d)",
+                        field.fieldName, entity.name, firstLine), field.line));
+                }
+            }
+        }
+        return errors;
+    }
+
+    private List<SemanticError> checkFieldTypes(ProgramNode program) {
+        Set<String> declaredEntities = declaredEntities(program);
+        List<SemanticError> errors = new ArrayList<>();
+        for (EntityNode entity : program.entities) {
+            for (FieldNode field : entity.fields) {
+                String baseType = resolveBaseType(field.fieldType);
+                if (!PRIMITIVES.contains(baseType) && !declaredEntities.contains(baseType)) {
+                    errors.add(new SemanticError(String.format(
+                        "Erro semântico: tipo '%s' do campo '%s' na entidade '%s' não declarado",
+                        baseType, field.fieldName, entity.name), field.line));
+                }
+            }
+        }
+        return errors;
+    }
+
     // V3: return type must be a declared entity or a primitive
     private List<SemanticError> checkReturnTypes(ProgramNode program) {
-        Set<String> declaredEntities = new HashSet<>();
-        for (EntityNode entity : program.entities) {
-            declaredEntities.add(entity.name);
-        }
+        Set<String> declaredEntities = declaredEntities(program);
 
         List<SemanticError> errors = new ArrayList<>();
         for (RouteNode route : program.routes) {
@@ -42,13 +91,25 @@ public class SemanticAnalyzer {
         return errors;
     }
 
+    private List<SemanticError> checkPaths(ProgramNode program) {
+        List<SemanticError> errors = new ArrayList<>();
+        for (RouteNode route : program.routes) {
+            if (!RouteNaming.isValidPath(route.path)) {
+                errors.add(new SemanticError(String.format(
+                    "Erro semântico: caminho HTTP inválido '%s' na rota %s",
+                    route.path, route.method), route.line));
+            }
+        }
+        return errors;
+    }
+
     // V1: duplicate route = same method + path
     private List<SemanticError> checkDuplicateRoutes(ProgramNode program) {
         Map<String, Integer> seen = new LinkedHashMap<>();
         List<SemanticError> errors = new ArrayList<>();
 
         for (RouteNode route : program.routes) {
-            String key = route.method + " \"" + route.path + "\"";
+            String key = route.method + " \"" + RouteNaming.canonicalPath(route.path) + "\"";
             if (seen.containsKey(key)) {
                 String msg = String.format(
                     "Erro semântico: rota duplicada %s (já declarada na linha %d)",
@@ -62,12 +123,44 @@ public class SemanticAnalyzer {
         return errors;
     }
 
+    private List<SemanticError> checkGeneratedSymbolCollisions(ProgramNode program) {
+        Map<String, RouteNode> controllers = new LinkedHashMap<>();
+        Map<String, RouteNode> methods = new LinkedHashMap<>();
+        List<SemanticError> errors = new ArrayList<>();
+
+        for (RouteNode route : program.routes) {
+            if (!RouteNaming.isValidPath(route.path)) {
+                continue;
+            }
+
+            String controllerName = RouteNaming.controllerName(route.path) + "Controller";
+            RouteNode firstController = controllers.putIfAbsent(controllerName, route);
+            if (firstController != null
+                && !RouteNaming.controllerKey(firstController.path).equals(RouteNaming.controllerKey(route.path))) {
+                errors.add(new SemanticError(String.format(
+                    "Erro semântico: os caminhos '%s' e '%s' geram o mesmo controller '%s'",
+                    firstController.path, route.path, controllerName), route.line));
+            }
+
+            String methodName = RouteNaming.methodName(route);
+            String methodKey = controllerName + "#" + methodName;
+            RouteNode firstMethod = methods.putIfAbsent(methodKey, route);
+            if (firstMethod != null) {
+                boolean sameRoute = firstMethod.method == route.method
+                    && RouteNaming.canonicalPath(firstMethod.path).equals(RouteNaming.canonicalPath(route.path));
+                if (!sameRoute) {
+                    errors.add(new SemanticError(String.format(
+                        "Erro semântico: as rotas %s \"%s\" e %s \"%s\" geram o mesmo método '%s'",
+                        firstMethod.method, firstMethod.path, route.method, route.path, methodName), route.line));
+                }
+            }
+        }
+        return errors;
+    }
+
     // V2: circular dependency between entities (DFS white/gray/black)
     private List<SemanticError> checkCircularDependencies(ProgramNode program) {
-        Set<String> entityNames = new HashSet<>();
-        for (EntityNode entity : program.entities) {
-            entityNames.add(entity.name);
-        }
+        Set<String> entityNames = declaredEntities(program);
 
         // Build dependency graph: only edges to other entities (not primitives)
         Map<String, Set<String>> graph = new LinkedHashMap<>();
@@ -79,7 +172,7 @@ public class SemanticAnalyzer {
                     deps.add(baseType);
                 }
             }
-            graph.put(entity.name, deps);
+            graph.computeIfAbsent(entity.name, key -> new LinkedHashSet<>()).addAll(deps);
         }
 
         // DFS coloring
@@ -117,16 +210,21 @@ public class SemanticAnalyzer {
                 cycle.add(neighbor); // close the cycle
                 String msg = "Erro semântico: dependência circular detectada entre " + String.join(" -> ", cycle);
                 errors.add(new SemanticError(msg, 0));
-                return; // report one cycle per component
-            }
-            if (color.getOrDefault(neighbor, 0) == 0) {
+            } else if (color.getOrDefault(neighbor, 0) == 0) {
                 dfs(neighbor, graph, color, path, errors);
-                if (!errors.isEmpty()) return; // stop after first cycle found in this branch
             }
         }
 
         path.removeLast();
         color.put(node, 2); // black
+    }
+
+    private Set<String> declaredEntities(ProgramNode program) {
+        Set<String> declared = new LinkedHashSet<>();
+        for (EntityNode entity : program.entities) {
+            declared.add(entity.name);
+        }
+        return declared;
     }
 
     private String resolveBaseType(TypeNode type) {

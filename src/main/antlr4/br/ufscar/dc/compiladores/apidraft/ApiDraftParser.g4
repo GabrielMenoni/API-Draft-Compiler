@@ -3,7 +3,7 @@ parser grammar ApiDraftParser;
 options { tokenVocab = ApiDraftLexer; }
 
 programa
-    : declaracao* EOF
+    : declaracao+ EOF
     ;
 
 declaracao
