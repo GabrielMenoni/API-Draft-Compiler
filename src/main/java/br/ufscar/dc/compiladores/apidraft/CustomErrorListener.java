@@ -8,6 +8,11 @@ import org.antlr.v4.runtime.Token;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Reúne erros léxicos e sintáticos em mensagens com linha/coluna, no lugar das
+ * mensagens padrão do ANTLR (que vazam termos da gramática, pouco úteis para
+ * quem escreve um arquivo {@code .apid}).
+ */
 public class CustomErrorListener extends BaseErrorListener {
     private final List<String> errors = new ArrayList<>();
 
@@ -52,6 +57,18 @@ public class CustomErrorListener extends BaseErrorListener {
 
     public boolean hasErrors() {
         return !errors.isEmpty();
+    }
+
+    public void lexicalError(Token token) {
+        errors.add(String.format(
+            "Erro léxico na linha %d, coluna %d: símbolo '%s' não reconhecido",
+            token.getLine(), token.getCharPositionInLine(), token.getText()));
+    }
+
+    public void unclosedPath(Token token) {
+        errors.add(String.format(
+            "Erro léxico na linha %d, coluna %d: caminho HTTP não fechado com aspas",
+            token.getLine(), token.getCharPositionInLine()));
     }
 
     public List<String> getErrors() {

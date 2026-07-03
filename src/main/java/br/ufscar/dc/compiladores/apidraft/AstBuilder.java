@@ -5,6 +5,7 @@ import br.ufscar.dc.compiladores.apidraft.ast.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Converte a árvore de parse gerada pelo ANTLR na AST tipada usada pelas fases seguintes. */
 public class AstBuilder extends ApiDraftParserBaseVisitor<Object> {
 
     @Override
@@ -27,7 +28,7 @@ public class AstBuilder extends ApiDraftParserBaseVisitor<Object> {
     public EntityNode visitEntityDecl(ApiDraftParser.EntityDeclContext ctx) {
         String name = ctx.IDENT().getText();
         List<FieldNode> fields = visitFieldList(ctx.fieldList());
-        return new EntityNode(name, fields);
+        return new EntityNode(name, fields, ctx.getStart().getLine());
     }
 
     @SuppressWarnings("unchecked")
@@ -44,7 +45,7 @@ public class AstBuilder extends ApiDraftParserBaseVisitor<Object> {
     public FieldNode visitField(ApiDraftParser.FieldContext ctx) {
         TypeNode type = visitTipo(ctx.tipo());
         String name = ctx.IDENT().getText();
-        return new FieldNode(type, name);
+        return new FieldNode(type, name, ctx.getStart().getLine());
     }
 
     @Override

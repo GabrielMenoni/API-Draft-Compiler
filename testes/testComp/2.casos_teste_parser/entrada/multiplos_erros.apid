@@ -1,0 +1,5 @@
+ENTITY User {
+  string name,
+}
+
+ROUTE GET "/users" List<User

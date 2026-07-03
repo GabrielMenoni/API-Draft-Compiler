@@ -1,0 +1,24 @@
+ENTITY Author {
+  string name,
+  string email
+}
+
+ENTITY Post {
+  string title,
+  string content,
+  int views,
+  bool published,
+  Author author
+}
+
+ENTITY Comment {
+  string text,
+  Author commenter
+}
+
+ROUTE GET "/authors" RETURNS List<Author>
+ROUTE POST "/authors" RETURNS Author
+ROUTE GET "/posts" RETURNS List<Post>
+ROUTE POST "/posts" RETURNS Post
+ROUTE GET "/posts/comments" RETURNS List<Comment>
+ROUTE DELETE "/posts/comments" RETURNS Comment

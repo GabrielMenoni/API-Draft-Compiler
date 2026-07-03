@@ -1,0 +1,14 @@
+ENTITY User {
+  string name,
+  bool active,
+  float score,
+  List<List<string>> aliases
+}
+
+ROUTE GET "/user-profiles" RETURNS List<User>
+ROUTE GET "/user-profiles/{id}" RETURNS User
+ROUTE PUT "/user-profiles/:id" RETURNS User
+ROUTE PATCH "/user-profiles/{id}/active" RETURNS bool
+ROUTE DELETE "/user-profiles/:id" RETURNS bool
+ROUTE GET "/metrics" RETURNS float
+ROUTE GET "/" RETURNS string

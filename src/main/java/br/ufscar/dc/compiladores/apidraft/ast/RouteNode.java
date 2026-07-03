@@ -1,5 +1,6 @@
 package br.ufscar.dc.compiladores.apidraft.ast;
 
+/** Nó de AST para uma declaração {@code ROUTE} (método HTTP + caminho + tipo de retorno). */
 public class RouteNode {
     public final HttpMethod method;
     public final String path;

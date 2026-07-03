@@ -1,0 +1,1 @@
+Erro semântico: rota duplicada GET "/users/:id" (já declarada na linha 1)

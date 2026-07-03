@@ -1,0 +1,1 @@
+Erro sintático na linha 3, coluna 2: esperado {'}', ','} mas encontrado 'int'

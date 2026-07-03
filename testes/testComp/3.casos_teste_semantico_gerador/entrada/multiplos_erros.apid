@@ -1,0 +1,6 @@
+ENTITY User {
+  string name
+}
+
+ROUTE GET "/users" RETURNS User
+ROUTE GET "/users" RETURNS MissingUser

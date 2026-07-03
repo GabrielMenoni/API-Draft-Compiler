@@ -1,0 +1,1 @@
+Erro sintático na linha 3, coluna 0: esperado {'List', 'string', 'int', 'bool', 'float', IDENT} mas encontrado '}'

@@ -1,0 +1,2 @@
+ROUTE GET "/users/{id}" RETURNS string
+ROUTE GET "/users/:id" RETURNS string

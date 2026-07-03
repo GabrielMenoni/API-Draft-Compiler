@@ -1,0 +1,7 @@
+// Entidades e rotas podem ser documentadas.
+ENTITY User {
+  string name // comentário ao fim do campo
+}
+
+// comentário antes da rota
+ROUTE GET "/users" RETURNS User

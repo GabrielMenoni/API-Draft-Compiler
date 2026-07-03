@@ -1,0 +1,11 @@
+ENTITY A {
+  B b
+}
+
+ENTITY B {
+  A a
+}
+
+ENTITY E {
+  A a
+}

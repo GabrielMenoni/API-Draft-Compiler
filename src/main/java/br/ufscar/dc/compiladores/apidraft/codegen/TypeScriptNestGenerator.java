@@ -7,14 +7,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+/**
+ * Gera um DTO TypeScript ({@code export class}) por entidade e um controller NestJS
+ * ({@code @Controller}) por prefixo de caminho, com um decorator de método HTTP por rota.
+ * Assim como no gerador Kotlin, os corpos dos métodos lançam erro em vez de implementar
+ * lógica de negócio — o compilador entrega o contrato, não a implementação.
+ */
 public class TypeScriptNestGenerator implements CodeGenerator {
 
     @Override
     public void generate(ProgramNode program, Path outputDir) throws IOException {
         Path dtosDir = outputDir.resolve("dtos");
         Path controllersDir = outputDir.resolve("controllers");
-        Files.createDirectories(dtosDir);
-        Files.createDirectories(controllersDir);
+        GeneratedOutput.recreateDirectory(dtosDir);
+        GeneratedOutput.recreateDirectory(controllersDir);
 
         for (EntityNode entity : program.entities) {
             generateDto(entity, dtosDir);
@@ -28,10 +34,23 @@ public class TypeScriptNestGenerator implements CodeGenerator {
 
     private void generateDto(EntityNode entity, Path dtosDir) throws IOException {
         StringBuilder sb = new StringBuilder();
+        Set<String> imports = new LinkedHashSet<>();
+        for (FieldNode field : entity.fields) {
+            String baseType = resolveBaseType(field.fieldType);
+            if (!isPrimitive(baseType) && !baseType.equals(entity.name)) {
+                imports.add("import { " + baseType + "Dto } from './" + toKebabCase(baseType) + ".dto';");
+            }
+        }
+        for (String dtoImport : imports) {
+            sb.append(dtoImport).append("\n");
+        }
+        if (!imports.isEmpty()) {
+            sb.append("\n");
+        }
         sb.append("export class ").append(entity.name).append("Dto {\n");
 
         for (FieldNode field : entity.fields) {
-            sb.append("  ").append(field.fieldName).append(": ").append(toTsType(field.fieldType)).append(";\n");
+            sb.append("  ").append(field.fieldName).append("!: ").append(toTsType(field.fieldType)).append(";\n");
         }
         sb.append("}\n");
 
@@ -41,10 +60,7 @@ public class TypeScriptNestGenerator implements CodeGenerator {
     }
 
     private void generateController(String prefix, List<RouteNode> routes, Path controllersDir) throws IOException {
-        // prefix = "users" → pluralName = "Users", singularName = "User"
-        String pluralName = capitalize(prefix);
-        String singularName = capitalize(singularize(prefix));
-        String className = pluralName + "Controller";
+        String className = RouteNaming.controllerName(routes.get(0).path) + "Controller";
 
         // Collect NestJS decorator imports
         Set<String> decorators = new LinkedHashSet<>();
@@ -73,8 +89,9 @@ public class TypeScriptNestGenerator implements CodeGenerator {
 
         for (RouteNode route : routes) {
             sb.append("\n");
-            sb.append("  @").append(toNestDecorator(route.method)).append("('").append(route.path).append("')\n");
-            String methodName = toTsMethodName(route.method, pluralName, singularName);
+            sb.append("  @").append(toNestDecorator(route.method)).append("('")
+                .append(RouteNaming.nestPath(route.path)).append("')\n");
+            String methodName = RouteNaming.methodName(route);
             String returnType = toTsReturnType(route.returnType);
             sb.append("  ").append(methodName).append("(): ").append(returnType).append(" {\n");
             sb.append("    throw new Error('Not implemented');\n");
@@ -83,7 +100,7 @@ public class TypeScriptNestGenerator implements CodeGenerator {
 
         sb.append("}\n");
 
-        String fileName = toKebabCase(prefix) + ".controller.ts";
+        String fileName = RouteNaming.controllerFileName(routes.get(0).path) + ".controller.ts";
         Path file = controllersDir.resolve(fileName);
         Files.writeString(file, sb.toString());
     }
@@ -91,16 +108,10 @@ public class TypeScriptNestGenerator implements CodeGenerator {
     private Map<String, List<RouteNode>> groupByPathPrefix(List<RouteNode> routes) {
         Map<String, List<RouteNode>> groups = new LinkedHashMap<>();
         for (RouteNode route : routes) {
-            String prefix = pathPrefix(route.path);
+            String prefix = RouteNaming.controllerKey(route.path);
             groups.computeIfAbsent(prefix, k -> new ArrayList<>()).add(route);
         }
         return groups;
-    }
-
-    private String pathPrefix(String path) {
-        String stripped = path.startsWith("/") ? path.substring(1) : path;
-        int slash = stripped.indexOf('/');
-        return slash >= 0 ? stripped.substring(0, slash) : stripped;
     }
 
     private String toTsType(TypeNode type) {
@@ -144,24 +155,6 @@ public class TypeScriptNestGenerator implements CodeGenerator {
         }
     }
 
-    private String toTsMethodName(HttpMethod method, String pluralName, String singularName) {
-        switch (method) {
-            case GET:    return "get" + pluralName;
-            case POST:   return "create" + singularName;
-            case PUT:    return "update" + singularName;
-            case DELETE: return "delete" + singularName;
-            case PATCH:  return "patch" + singularName;
-            default:     return "handle" + singularName;
-        }
-    }
-
-    private String singularize(String segment) {
-        if (segment.endsWith("s") && segment.length() > 1) {
-            return segment.substring(0, segment.length() - 1);
-        }
-        return segment;
-    }
-
     private String resolveBaseType(TypeNode type) {
         if ("List".equals(type.baseType) && type.genericArg != null) {
             return resolveBaseType(type.genericArg);
@@ -173,13 +166,9 @@ public class TypeScriptNestGenerator implements CodeGenerator {
         return type.equals("string") || type.equals("int") || type.equals("bool") || type.equals("float");
     }
 
-    // "UserProfile" → "user-profile"
+    /** {@code "UserProfile" -> "user-profile"}, para nomes de arquivo no padrão NestJS. */
     private String toKebabCase(String name) {
         return name.replaceAll("([A-Z])", "-$1").toLowerCase().replaceAll("^-", "");
     }
 
-    private String capitalize(String s) {
-        if (s == null || s.isEmpty()) return s;
-        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
 }
