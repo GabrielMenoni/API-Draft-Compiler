@@ -1,0 +1,8 @@
+ENTITY User {
+  string name,
+  string name
+}
+
+ENTITY User {
+  int id
+}

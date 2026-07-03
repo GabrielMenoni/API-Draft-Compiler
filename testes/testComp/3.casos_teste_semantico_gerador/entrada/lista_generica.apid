@@ -1,0 +1,10 @@
+ENTITY User {
+  string name
+}
+
+ENTITY Team {
+  string name,
+  List<User> members
+}
+
+ROUTE GET "/teams" RETURNS List<Team>

@@ -1,0 +1,2 @@
+Erro semântico: entidade 'User' duplicada (já declarada na linha 1)
+Erro semântico: campo 'name' duplicado na entidade 'User' (já declarado na linha 2)

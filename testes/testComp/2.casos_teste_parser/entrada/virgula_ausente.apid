@@ -1,0 +1,4 @@
+ENTITY User {
+  string name
+  int age
+}

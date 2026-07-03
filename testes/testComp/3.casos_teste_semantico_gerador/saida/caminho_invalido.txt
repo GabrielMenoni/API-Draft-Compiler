@@ -1,0 +1,1 @@
+Erro semântico: caminho HTTP inválido 'users?all=true' na rota GET

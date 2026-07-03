@@ -1,0 +1,2 @@
+Erro semântico: tipo de retorno 'MissingUser' não declarado antes da rota GET "/users"
+Erro semântico: rota duplicada GET "/users" (já declarada na linha 5)

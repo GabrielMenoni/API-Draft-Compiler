@@ -10,7 +10,13 @@ ENTITY Product {
   int stock
 }
 
+ENTITY Order {
+  int number,
+  Product product
+}
+
 ROUTE GET "/users" RETURNS List<User>
 ROUTE POST "/users" RETURNS User
 ROUTE GET "/products" RETURNS List<Product>
 ROUTE DELETE "/products" RETURNS Product
+ROUTE GET "/orders" RETURNS List<Order>

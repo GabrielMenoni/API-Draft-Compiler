@@ -1,0 +1,1 @@
+Erro semântico: as rotas GET "/users/foo-bar" e GET "/users/foo_bar" geram o mesmo método 'getUsersFooBar'
